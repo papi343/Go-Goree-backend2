@@ -14,6 +14,13 @@ class Role extends Model
         'nom',
     ];
 
+    protected function casts(): array
+    {
+        return [
+            'nom' => \App\Enums\RoleEnum::class,
+        ];
+    }
+
     public function users()
     {
         return $this->hasMany(User::class);

@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\User;
 use App\Models\Abonnement;
+use App\Enums\RoleEnum;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 /**
@@ -18,7 +19,7 @@ class AbonnementPolicy
      */
     protected function isAdminOrAgent(User $user): bool
     {
-        return $user->role && in_array($user->role->nom, ['Admin', 'Agent']);
+        return $user->role && in_array($user->role->nom, [RoleEnum::ADMIN, RoleEnum::AGENT], true);
     }
 
     /**
@@ -26,7 +27,7 @@ class AbonnementPolicy
      */
     protected function isAdmin(User $user): bool
     {
-        return $user->role && $user->role->nom === 'Admin';
+        return $user->role && $user->role->nom === RoleEnum::ADMIN;
     }
 
     /**

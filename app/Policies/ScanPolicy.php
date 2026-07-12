@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\User;
 use App\Models\Scan;
+use App\Enums\RoleEnum;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 /**
@@ -18,7 +19,7 @@ class ScanPolicy
      */
     protected function isAdminOrAgent(User $user): bool
     {
-        return $user->role && in_array($user->role->nom, ['Admin', 'Agent']);
+        return $user->role && in_array($user->role->nom, [RoleEnum::ADMIN, RoleEnum::AGENT], true);
     }
 
     /**
@@ -54,7 +55,7 @@ class ScanPolicy
      */
     public function update(User $user, Scan $scan): bool
     {
-        return $user->role && $user->role->nom === 'Admin';
+        return $user->role && $user->role->nom === RoleEnum::ADMIN;
     }
 
     /**
@@ -62,6 +63,6 @@ class ScanPolicy
      */
     public function delete(User $user, Scan $scan): bool
     {
-        return $user->role && $user->role->nom === 'Admin';
+        return $user->role && $user->role->nom === RoleEnum::ADMIN;
     }
 }

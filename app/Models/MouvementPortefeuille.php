@@ -24,8 +24,6 @@ class MouvementPortefeuille extends Model
             'type' => \App\Enums\MouvementPortefeuilleEnum::class,
             'statut' => \App\Enums\StatutMouvementEnum::class,
             'montant' => 'decimal:2',
-            'solde_avant' => 'decimal:2',
-            'solde_apres' => 'decimal:2',
         ];
     }
 

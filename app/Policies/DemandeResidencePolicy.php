@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\User;
 use App\Models\DemandeResidence;
+use App\Enums\RoleEnum;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 /**
@@ -18,7 +19,7 @@ class DemandeResidencePolicy
      */
     protected function isAdminOrAgent(User $user): bool
     {
-        return $user->role && in_array($user->role->nom, ['Admin', 'Agent']);
+        return $user->role && in_array($user->role->nom, [RoleEnum::ADMIN, RoleEnum::AGENT], true);
     }
 
     /**
@@ -26,7 +27,7 @@ class DemandeResidencePolicy
      */
     protected function isAdmin(User $user): bool
     {
-        return $user->role && $user->role->nom === 'Admin';
+        return $user->role && $user->role->nom === RoleEnum::ADMIN;
     }
 
     /**
@@ -34,7 +35,7 @@ class DemandeResidencePolicy
      */
     protected function isAgent(User $user): bool
     {
-        return $user->role && $user->role->nom === 'Agent';
+        return $user->role && $user->role->nom === RoleEnum::AGENT;
     }
 
     /**
