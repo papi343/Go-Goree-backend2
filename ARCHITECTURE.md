@@ -15,7 +15,7 @@ Ce document décrit l'arborescence **exacte** produite par `php run_all.php` (ou
 app/
 ├── Enums/                                          (15 fichiers, tous [OK] — ce sont des enums PHP natifs, pas de logique à écrire)
 │   ├── DemandeResidenceEnum.php                     EN_COURS · ACCEPTEE · REFUSEE · ANNULEE
-│   ├── ModeEnum.php                                 WAVE · ORANGE_MONEY · YAS · CARTE_BANCAIRE · PORTEFEUILLE
+│   ├── ModePayementEnum.php                         WAVE · ORANGE_MONEY · YAS · CARTE_BANCAIRE · PORTEFEUILLE
 │   ├── StatutPayementEnum.php                       EN_COURS · ACCEPTE · REFUSE · SUSPECT
 │   ├── CanalEnum.php                                SMS · IN_APP · MAIL
 │   ├── NotificationEnum.php                         PAYEMENT · ALERTE

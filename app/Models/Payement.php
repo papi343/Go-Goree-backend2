@@ -26,7 +26,7 @@ class Payement extends Model
     {
         return [
             'statut' => \App\Enums\StatutPayementEnum::class,
-            'mode' => \App\Enums\ModeEnum::class,
+            'mode' => \App\Enums\ModePayementEnum::class,
             'type_transaction' => \App\Enums\TypeTransactionPayDunyaEnum::class,
             'montant' => 'decimal:2',
             'timestamp' => 'datetime',

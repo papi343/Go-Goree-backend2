@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Enums;
 
-enum ModeEnum: string
+enum ModePayementEnum: string
 {
     case WAVE = 'WAVE';
     case ORANGE_MONEY = 'ORANGE_MONEY';
