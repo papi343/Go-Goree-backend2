@@ -54,6 +54,9 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    // URL de la page front qui reçoit le jeton de réinitialisation de mot de passe.
+    'password_reset_url' => env('PASSWORD_RESET_URL', env('APP_URL', 'http://localhost').'/reset-password'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone

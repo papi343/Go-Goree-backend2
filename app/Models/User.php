@@ -25,6 +25,7 @@ class User extends Authenticatable
         'email',
         'telephone',
         'mot_de_passe',
+        'password_reset_at',
         'active',
         'est_resident',
         'role_id',
@@ -49,6 +50,7 @@ class User extends Authenticatable
         return [
             'active' => 'boolean',
             'est_resident' => 'boolean',
+            'password_reset_at' => 'datetime',
         ];
     }
 
