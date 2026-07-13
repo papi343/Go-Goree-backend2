@@ -2,16 +2,47 @@
 
 namespace App\Http\Controllers\Api\V1\Residents;
 
+use App\Enums\ModePayementEnum;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\Residents\SouscrireAbonnementRequest;
 use App\Models\Abonnement;
+use App\Models\Plan;
+use App\Services\Residents\AbonnementSouscriptionService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 /**
- * Contrôleur pour gérer les abonnements des résidents (CRUD administratif).
+ * Contrôleur pour gérer les abonnements des résidents (CRUD administratif + souscription).
  */
 class AbonnementController extends Controller
 {
+    /**
+     * Souscrire un abonnement (résident) : débit portefeuille immédiat ou lien PayDunya.
+     */
+    public function souscrire(SouscrireAbonnementRequest $request, AbonnementSouscriptionService $service)
+    {
+        $plan = Plan::where('actif', true)->findOrFail($request->plan_id);
+
+        try {
+            $result = $service->souscrire(
+                $request->user(),
+                $plan,
+                ModePayementEnum::from($request->payment_mode),
+            );
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
+        }
+
+        return response()->json([
+            'message' => $result['abonnement']
+                ? 'Abonnement activé avec succès.'
+                : 'Souscription initiée, finalisez le paiement.',
+            'abonnement' => $result['abonnement'],
+            'reference' => $result['payement']->reference,
+            'redirect_url' => $result['redirect_url'],
+        ], Response::HTTP_CREATED);
+    }
+
     /**
      * Liste des abonnements.
      */

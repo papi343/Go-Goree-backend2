@@ -9,12 +9,14 @@ enum TypeTransactionPayDunyaEnum: string
 {
     case ACHAT_BILLET = 'ACHAT_BILLET';
     case RECHARGE_PORTEFEUILLE = 'RECHARGE_PORTEFEUILLE';
+    case ABONNEMENT = 'ABONNEMENT';
 
     public function label(): string
     {
         return match ($this) {
             self::ACHAT_BILLET => 'Achat billet',
             self::RECHARGE_PORTEFEUILLE => 'Recharge portefeuille',
+            self::ABONNEMENT => 'Abonnement',
         };
     }
 }

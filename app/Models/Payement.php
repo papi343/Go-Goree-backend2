@@ -23,6 +23,7 @@ class Payement extends Model
         'type_transaction',
         'paydunya_token',
         'billet_id',
+        'plan_id',
         'user_id',
     ];
 
@@ -45,6 +46,11 @@ class Payement extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function plan()
+    {
+        return $this->belongsTo(Plan::class);
     }
 
     public function mouvements()

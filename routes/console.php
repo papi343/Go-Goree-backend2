@@ -18,7 +18,7 @@ Schedule::call(function () {
     event(new RapportJournalierGenere($donnees));
 })->dailyAt(config('app.rapport_journalier_heure', '23:55'))->name('rapport-journalier');
 
-// Expiration automatique des billets 2 heures après l'heure d'embarquement/départ du voyage (qu'ils soient scannés ou non)
+// Expiration automatique des billets non utilisés 1 heure après l'heure de départ du voyage.
 Schedule::job(new ExpireTicketsJob)->everyMinute()->name('expiration-billets');
 
 // Vérification quotidienne des abonnements expirant bientôt (dans 3 jours)

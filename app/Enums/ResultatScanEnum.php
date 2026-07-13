@@ -10,6 +10,7 @@ enum ResultatScanEnum: string
     case DEJA_SCANNE = 'DEJA_SCANNE';
     case EXPIRE = 'EXPIRE';
     case NON_EMBARQUE = 'NON_EMBARQUE';
+    case MAUVAIS_VOYAGE = 'MAUVAIS_VOYAGE';
 
     public function label(): string
     {
@@ -18,6 +19,7 @@ enum ResultatScanEnum: string
             self::DEJA_SCANNE => 'Déjà scanné',
             self::EXPIRE => 'Expiré',
             self::NON_EMBARQUE => 'Non embarqué',
+            self::MAUVAIS_VOYAGE => 'Mauvais voyage',
         };
     }
 }

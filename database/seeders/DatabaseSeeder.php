@@ -7,6 +7,7 @@ use App\Enums\JourEnum;
 use App\Enums\RoleEnum;
 use App\Enums\StatutChaloupeEnum;
 use App\Models\Chaloupe;
+use App\Models\Plan;
 use App\Models\Portefeuille;
 use App\Models\Role;
 use App\Models\Tarif;
@@ -67,6 +68,16 @@ class DatabaseSeeder extends Seeder
         ];
         foreach ($tarifs as [$categorie, $prix]) {
             Tarif::firstOrCreate(['categorie' => $categorie->value], ['prix' => $prix]);
+        }
+
+        // 4-bis) Plans d'abonnement (durée + prix)
+        $plans = [
+            ['Abonnement 1 mois', 1, 5000],
+            ['Abonnement 6 mois', 6, 27000],
+            ['Abonnement 12 mois', 12, 50000],
+        ];
+        foreach ($plans as [$nom, $duree, $prix]) {
+            Plan::firstOrCreate(['nom' => $nom], ['duree_mois' => $duree, 'prix' => $prix, 'actif' => true]);
         }
 
         // 5) Un trajet, une chaloupe et un voyage du jour

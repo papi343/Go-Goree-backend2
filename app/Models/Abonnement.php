@@ -16,6 +16,7 @@ class Abonnement extends Model
         'date_fin',
         'montant',
         'resident_id',
+        'plan_id',
     ];
 
     protected function casts(): array
@@ -30,6 +31,11 @@ class Abonnement extends Model
     public function resident()
     {
         return $this->belongsTo(Resident::class);
+    }
+
+    public function plan()
+    {
+        return $this->belongsTo(Plan::class);
     }
 
     /**

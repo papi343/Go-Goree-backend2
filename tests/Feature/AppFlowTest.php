@@ -95,14 +95,11 @@ test('flux complet de l\'application : authentification, résidence, recharge, a
         'statut' => DemandeResidenceEnum::ACCEPTEE->value,
     ]);
 
-    // Vérifier que l'écouteur d'événement a bien activé le résident et créé son abonnement de 12 mois
+    // Vérifier que l'écouteur d'événement a bien activé le statut résident.
+    // (L'abonnement n'est plus créé automatiquement : il se souscrit/paie séparément.)
     $resident = Resident::where('user_id', $client->id)->first();
     $this->assertNotNull($resident);
     $this->assertTrue((bool) $resident->active);
-
-    $this->assertDatabaseHas('abonnements', [
-        'resident_id' => $resident->id,
-    ]);
 
     // -------------------------------------------------------------
     // ÉTAPE 4 : Recharge du portefeuille (Client)
@@ -181,12 +178,17 @@ test('flux complet de l\'application : authentification, résidence, recharge, a
     ]);
 
     // -------------------------------------------------------------
-    // ÉTAPE 6 : Scan du Billet lors de l'embarquement
+    // ÉTAPE 6 : Ouverture de l'embarcation puis scan du billet
     // -------------------------------------------------------------
     Sanctum::actingAs($admin);
 
+    $embarquementId = $this->postJson('/api/v1/embarquements/ouvrir', [
+        'voyage_id' => $voyage->id,
+    ])->assertOk()->json('id');
+
     $scanResponse = $this->postJson('/api/v1/scans', [
         'qr_token' => $qrToken,
+        'embarquement_id' => $embarquementId,
     ]);
 
     $scanResponse->assertStatus(200)

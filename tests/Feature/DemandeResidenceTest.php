@@ -65,7 +65,7 @@ test('un client ne peut pas voir la demande d\'un autre', function () {
     $this->getJson("/api/v1/demandes-residence/{$autre->id}")->assertForbidden();
 });
 
-test('un admin valide une demande, ce qui active le résident et crée un abonnement', function () {
+test('un admin valide une demande, ce qui active le résident (sans abonnement auto)', function () {
     $demande = DemandeResidence::factory()->create();
     Sanctum::actingAs(User::factory()->admin()->create());
 
@@ -81,7 +81,8 @@ test('un admin valide une demande, ce qui active le résident et crée un abonne
     expect($resident)->not->toBeNull();
     expect((bool) $resident->active)->toBeTrue();
     expect($demande->user->fresh()->est_resident)->toBeTrue();
-    expect(Abonnement::where('resident_id', $resident->id)->exists())->toBeTrue();
+    // L'abonnement n'est plus créé automatiquement : il se souscrit et se paie.
+    expect(Abonnement::where('resident_id', $resident->id)->exists())->toBeFalse();
 });
 
 test('un client ne peut pas valider une demande', function () {

@@ -2,37 +2,36 @@
 
 namespace App\Models;
 
-use App\Enums\ResultatScanEnum;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Scan extends Model
+/**
+ * Plan d'abonnement : une durée (en mois) et un prix.
+ */
+class Plan extends Model
 {
     use HasFactory, HasUuids, SoftDeletes;
 
     protected $fillable = [
-        'resultat',
-        'billet_id',
-        'embarquement_id',
-        'scanne_par',
+        'nom',
+        'duree_mois',
+        'prix',
+        'actif',
     ];
 
     protected function casts(): array
     {
         return [
-            'resultat' => ResultatScanEnum::class,
+            'duree_mois' => 'integer',
+            'prix' => 'decimal:2',
+            'actif' => 'boolean',
         ];
     }
 
-    public function billet()
+    public function abonnements()
     {
-        return $this->belongsTo(Billet::class);
-    }
-
-    public function embarquement()
-    {
-        return $this->belongsTo(Embarquement::class);
+        return $this->hasMany(Abonnement::class);
     }
 }
