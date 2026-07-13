@@ -7,6 +7,7 @@ use App\Enums\ModePayementEnum;
 use App\Enums\ResultatScanEnum;
 use App\Enums\StatutBilletEnum;
 use App\Enums\StatutPayementEnum;
+use App\Enums\TypeTransactionPayDunyaEnum;
 use App\Events\PaiementAccepte;
 use App\Models\Billet;
 use App\Models\Chaloupe;
@@ -114,10 +115,12 @@ test('flux complet de l\'application : authentification, résidence, recharge, a
     ]);
 
     $rechargeResponse->assertStatus(201);
-    $paydunyaToken = $rechargeResponse->json('payement.paydunya_token');
 
-    // Puisque PayDunya n'est pas encore intégré au niveau réseau, on valide directement le paiement en base
-    $payement = Payement::where('paydunya_token', $paydunyaToken)->first();
+    // Le jeton PayDunya n'est volontairement PLUS exposé dans la réponse (sécurité).
+    // On récupère le paiement en base, puis on simule la confirmation PayDunya.
+    $payement = Payement::where('user_id', $client->id)
+        ->where('type_transaction', TypeTransactionPayDunyaEnum::RECHARGE_PORTEFEUILLE)
+        ->first();
     $this->assertNotNull($payement);
     $payement->update(['statut' => StatutPayementEnum::ACCEPTE]);
     event(new PaiementAccepte($payement));
