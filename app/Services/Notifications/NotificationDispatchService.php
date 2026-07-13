@@ -2,10 +2,11 @@
 
 namespace App\Services\Notifications;
 
-use App\Models\Notification;
-use App\Models\User;
 use App\Enums\CanalEnum;
 use App\Enums\NotificationEnum;
+use App\Events\NotificationCreee;
+use App\Models\Notification;
+use App\Models\User;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -33,7 +34,7 @@ class NotificationDispatchService
                 $this->sendMail($user->email, $message);
                 break;
             case CanalEnum::IN_APP:
-                $this->sendPushNotification($user->id, $message);
+                $this->sendPushNotification($notification, $message);
                 break;
         }
 
@@ -61,10 +62,13 @@ class NotificationDispatchService
     }
 
     /**
-     * Envoyer une notification Push in-app (simulation via logs).
+     * Diffuser la notification in-app en temps réel (Reverb) sur le canal privé
+     * du destinataire, en plus de la persistance en base.
      */
-    protected function sendPushNotification(string $userId, string $message): void
+    protected function sendPushNotification(Notification $notification, string $message): void
     {
-        Log::info("Envoi Notification Push in-app à l'utilisateur {$userId} : {$message}");
+        event(new NotificationCreee($notification, $message));
+
+        Log::info("Notification temps réel diffusée à l'utilisateur {$notification->user_id} : {$message}");
     }
 }
