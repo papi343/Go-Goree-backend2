@@ -18,6 +18,8 @@ enum PayDunyaPaymentStatus: string
     /**
      * Convertit une valeur brute renvoyée par PayDunya en statut normalisé.
      */
+
+    
     public static function depuisApi(?string $statut): self
     {
         return match (strtolower(trim((string) $statut))) {

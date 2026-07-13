@@ -22,6 +22,7 @@ class FakePayDunyaClient implements PayDunyaClientInterface
     /**
      * @param  array<string, mixed>  $config  Sous-arbre config('paydunya').
      */
+    
     public function __construct(protected array $config) {}
 
     public function createInvoice(PaymentIntent $intent): InvoiceResult
