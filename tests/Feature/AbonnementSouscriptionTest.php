@@ -82,6 +82,26 @@ test('un résident souscrit via PayDunya : lien de paiement puis activation au w
     expect(Abonnement::where('resident_id', $resident->id)->exists())->toBeTrue();
 });
 
+test('l\'activation de l\'abonnement est liée au paiement et idempotente', function () {
+    $user = residentConnecte();
+    Portefeuille::factory()->solde(10000)->create(['user_id' => $user->id]);
+    $plan = Plan::factory()->duree(1, 5000)->create();
+
+    $this->postJson('/api/v1/abonnements/souscrire', [
+        'plan_id' => $plan->id,
+        'payment_mode' => ModePayementEnum::PORTEFEUILLE->value,
+    ])->assertCreated();
+
+    $resident = Resident::where('user_id', $user->id)->first();
+    $payement = Payement::where('user_id', $user->id)->firstOrFail();
+    $abonnement = Abonnement::where('resident_id', $resident->id)->firstOrFail();
+    expect($abonnement->payement_id)->toBe($payement->id);
+
+    // Rejeu de la confirmation : aucun second abonnement.
+    event(new PaiementAccepte($payement));
+    expect(Abonnement::where('resident_id', $resident->id)->count())->toBe(1);
+});
+
 test('un non-résident ne peut pas souscrire', function () {
     Sanctum::actingAs(User::factory()->client()->create()); // est_resident = false
     $plan = Plan::factory()->duree(1, 5000)->create();

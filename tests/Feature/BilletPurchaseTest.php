@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Models\Voyage;
 use App\Services\Paiements\PayDunya\PayDunyaClientInterface;
 use App\Services\Paiements\PayDunyaPaymentService;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
@@ -102,6 +103,18 @@ test('impossible de générer deux billets pour le même voyage (fraude signalé
     // Un seul billet, et une alerte de fraude a été enregistrée.
     expect(Billet::where('user_id', $client->id)->where('voyage_id', $voyage->id)->count())->toBe(1);
     $this->assertDatabaseHas('alerte_fraudes', ['regle_declenchee' => 'double_billet_voyage']);
+});
+
+test('la base garantit l\'unicité d\'un billet actif par (client, voyage) [anti-course]', function () {
+    $client = User::factory()->client()->create();
+    $voyage = Voyage::factory()->create();
+    $tarif = Tarif::factory()->etranger()->create();
+
+    Billet::factory()->paye()->create(['user_id' => $client->id, 'voyage_id' => $voyage->id, 'tarif_id' => $tarif->id]);
+
+    expect(fn () => Billet::factory()->paye()->create([
+        'user_id' => $client->id, 'voyage_id' => $voyage->id, 'tarif_id' => $tarif->id,
+    ]))->toThrow(UniqueConstraintViolationException::class);
 });
 
 test('l\'achat échoue si le solde du portefeuille est insuffisant', function () {

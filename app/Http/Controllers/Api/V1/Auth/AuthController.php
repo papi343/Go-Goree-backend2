@@ -33,7 +33,9 @@ class AuthController extends Controller
             'email' => $request->email,
             'telephone' => $request->telephone,
             'mot_de_passe' => $request->mot_de_passe, // haché via le cast du modèle
-            'est_resident' => $request->boolean('est_resident'),
+            // est_resident reste false : la résidence n'est accordée qu'après
+            // validation d'une demande de résidence par un administrateur.
+            'est_resident' => false,
             'active' => true,
             'password_reset_at' => now(),
             'role_id' => $roleClient->id,

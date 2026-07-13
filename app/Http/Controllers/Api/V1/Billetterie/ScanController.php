@@ -41,6 +41,12 @@ class ScanController extends Controller
 
         $embarquement = Embarquement::findOrFail($data['embarquement_id']);
 
+        if (! $embarquement->estOuvert()) {
+            return response()->json([
+                'message' => "Cette session d'embarquement est fermée.",
+            ], Response::HTTP_CONFLICT);
+        }
+
         // Lookup indexé (qr_token est unique) — colonnes minimales.
         $billet = Billet::where('qr_token', $data['qr_token'])->first(['id', 'statut', 'voyage_id']);
 

@@ -9,6 +9,7 @@ use App\Models\Trajet;
 use App\Models\Voyage;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
@@ -61,18 +62,22 @@ class GenererVoyagesSemaineJob implements ShouldQueue
                     continue;
                 }
 
-                // Répartition round-robin des chaloupes actives.
+                // Répartition à tour de rôle (round-robin) des chaloupes actives.
                 $chaloupe = $chaloupes[$index % $chaloupes->count()];
                 $index++;
 
-                Voyage::create([
-                    'date_voyage' => $date->toDateString(),
-                    'places' => $chaloupe->capacite,
-                    'places_restantes' => $chaloupe->capacite,
-                    'trajet_id' => $trajet->id,
-                    'chaloupe_id' => $chaloupe->id,
-                ]);
-                $crees++;
+                try {
+                    Voyage::create([
+                        'date_voyage' => $date->toDateString(),
+                        'places' => $chaloupe->capacite,
+                        'places_restantes' => $chaloupe->capacite,
+                        'trajet_id' => $trajet->id,
+                        'chaloupe_id' => $chaloupe->id,
+                    ]);
+                    $crees++;
+                } catch (UniqueConstraintViolationException $e) {
+                    // Voyage déjà généré (exécution concurrente) : on ignore.
+                }
             }
         }
 

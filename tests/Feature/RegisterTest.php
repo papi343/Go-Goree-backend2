@@ -58,12 +58,13 @@ test('l\'inscription exige la confirmation du mot de passe', function () {
     ])->assertStatus(422)->assertJsonValidationErrors(['mot_de_passe']);
 });
 
-test('le drapeau est_resident est pris en compte', function () {
+test('l\'inscription n\'accorde jamais le statut résident (validation admin requise)', function () {
+    // Même si le client tente de forcer est_resident, il est ignoré.
     $this->postJson('/api/v1/register', [
         'prenom' => 'A', 'nom' => 'B', 'email' => 'res@goree.sn',
         'mot_de_passe' => 'MotDePasse1', 'mot_de_passe_confirmation' => 'MotDePasse1',
         'est_resident' => true,
     ])->assertCreated();
 
-    expect(User::where('email', 'res@goree.sn')->first()->est_resident)->toBeTrue();
+    expect(User::where('email', 'res@goree.sn')->first()->est_resident)->toBeFalse();
 });

@@ -14,6 +14,7 @@ use App\Events\PaiementAccepte;
 use App\Events\PaiementInitie;
 use App\Models\AlerteFraude;
 use App\Models\Billet;
+use App\Models\Tarif;
 use App\Models\User;
 use App\Repositories\Contracts\BilletRepositoryInterface;
 use App\Services\Billetterie\SubServices\BilletQrTokenGeneratorService;
@@ -22,6 +23,8 @@ use App\Services\Billetterie\SubServices\PlaceReservationService;
 use App\Services\Billetterie\SubServices\ResidentAbonnementCheckerService;
 use App\Services\Billetterie\SubServices\TarifResolverService;
 use App\Services\Portefeuille\PortefeuilleService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -57,62 +60,89 @@ class BilletPurchaseService
 
     public function purchase(User $user, string $voyageId, ModePayementEnum $paymentMode, ?CategorieEnum $requestedCategory = null): array
     {
-        // Anti-doublon (hors transaction pour conserver l'alerte de fraude en cas de refus).
+        // Anti-doublon — pré-vérification (rapide, bonne UX). La garantie stricte
+        // contre les achats concurrents est assurée par l'index unique en base,
+        // capturé ci-dessous.
         if ($this->possedeDejaUnBillet($user->id, $voyageId)) {
             $this->signalerDoubleBillet($user, $voyageId);
 
             throw new \RuntimeException('Vous avez déjà un billet pour ce voyage.');
         }
 
-        return DB::transaction(function () use ($user, $voyageId, $paymentMode, $requestedCategory) {
-            $estAbonne = $this->abonnementChecker->check($user);
-            $tarif = $this->tarifResolver->resolve($user, $requestedCategory);
+        try {
+            return DB::transaction(function () use ($user, $voyageId, $paymentMode, $requestedCategory) {
+                $estAbonne = $this->abonnementChecker->check($user);
+                $tarif = $this->resoudreTarif($user, $requestedCategory, $estAbonne);
 
-            if (! $this->placeReservation->reserve($voyageId, 1)) {
-                throw new \RuntimeException('Pas de places disponibles pour ce voyage.');
+                if (! $this->placeReservation->reserve($voyageId, 1)) {
+                    throw new \RuntimeException('Pas de places disponibles pour ce voyage.');
+                }
+
+                $billet = $this->billetRepository->create([
+                    'qr_token' => $this->qrTokenGenerator->generate(),
+                    'montant' => $estAbonne ? 0 : $tarif->prix,
+                    'statut' => $estAbonne ? StatutBilletEnum::PAYE : StatutBilletEnum::EN_ATTENTE_PAIEMENT,
+                    'voyage_id' => $voyageId,
+                    'tarif_id' => $tarif?->id,
+                    'user_id' => $user->id,
+                ]);
+
+                // Résident abonné : génération gratuite, aucun paiement.
+                if ($estAbonne) {
+                    event(new BilletAchete($billet));
+
+                    return ['billet' => $billet, 'payement' => null, 'redirect_url' => null];
+                }
+
+                // Sinon : flux de paiement.
+                $paymentResult = $this->paymentInitiation->initiate($billet, $paymentMode);
+                if (! $paymentResult['success']) {
+                    throw new \RuntimeException("Échec de l'initiation du paiement: ".($paymentResult['message'] ?? ''));
+                }
+
+                $payement = $paymentResult['payement'];
+
+                if ($paymentMode === ModePayementEnum::PORTEFEUILLE) {
+                    $this->portefeuilleService->debiter($user->id, (float) $tarif->prix, $payement->id);
+                    $payement->update(['statut' => StatutPayementEnum::ACCEPTE]);
+                    $billet->update(['statut' => StatutBilletEnum::PAYE]);
+
+                    event(new PaiementAccepte($payement));
+                    event(new BilletAchete($billet));
+                } else {
+                    event(new PaiementInitie($payement));
+                }
+
+                return [
+                    'billet' => $billet,
+                    'payement' => $payement,
+                    'redirect_url' => $paymentResult['redirect_url'] ?? null,
+                ];
+            });
+        } catch (UniqueConstraintViolationException $e) {
+            // Course perdue : un billet actif pour ce voyage a été créé en parallèle.
+            $this->signalerDoubleBillet($user, $voyageId);
+
+            throw new \RuntimeException('Vous avez déjà un billet pour ce voyage.');
+        }
+    }
+
+    /**
+     * Résout le tarif. Pour un abonné (billet gratuit), l'absence de tarif
+     * RESIDENT n'est pas bloquante (tarif_id nullable) ; pour un achat, le tarif
+     * est requis (une exception remonte si aucun tarif applicable n'existe).
+     */
+    private function resoudreTarif(User $user, ?CategorieEnum $requestedCategory, bool $estAbonne): ?Tarif
+    {
+        if ($estAbonne) {
+            try {
+                return $this->tarifResolver->resolve($user, $requestedCategory);
+            } catch (ModelNotFoundException $e) {
+                return null;
             }
+        }
 
-            $billet = $this->billetRepository->create([
-                'qr_token' => $this->qrTokenGenerator->generate(),
-                'montant' => $estAbonne ? 0 : $tarif->prix,
-                'statut' => $estAbonne ? StatutBilletEnum::PAYE : StatutBilletEnum::EN_ATTENTE_PAIEMENT,
-                'voyage_id' => $voyageId,
-                'tarif_id' => $tarif->id,
-                'user_id' => $user->id,
-            ]);
-
-            // Résident abonné : génération gratuite, aucun paiement.
-            if ($estAbonne) {
-                event(new BilletAchete($billet));
-
-                return ['billet' => $billet, 'payement' => null, 'redirect_url' => null];
-            }
-
-            // Sinon : flux de paiement.
-            $paymentResult = $this->paymentInitiation->initiate($billet, $paymentMode);
-            if (! $paymentResult['success']) {
-                throw new \RuntimeException("Échec de l'initiation du paiement: ".($paymentResult['message'] ?? ''));
-            }
-
-            $payement = $paymentResult['payement'];
-
-            if ($paymentMode === ModePayementEnum::PORTEFEUILLE) {
-                $this->portefeuilleService->debiter($user->id, (float) $tarif->prix, $payement->id);
-                $payement->update(['statut' => StatutPayementEnum::ACCEPTE]);
-                $billet->update(['statut' => StatutBilletEnum::PAYE]);
-
-                event(new PaiementAccepte($payement));
-                event(new BilletAchete($billet));
-            } else {
-                event(new PaiementInitie($payement));
-            }
-
-            return [
-                'billet' => $billet,
-                'payement' => $payement,
-                'redirect_url' => $paymentResult['redirect_url'] ?? null,
-            ];
-        });
+        return $this->tarifResolver->resolve($user, $requestedCategory);
     }
 
     /**

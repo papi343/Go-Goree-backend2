@@ -58,7 +58,7 @@ Le seeder crée :
 | Admin | `admin@goree.sn` | `Admin@1234` | Admin |
 | Client | `client@goree.sn` | `Client@1234` | Client |
 
-Plus : la grille tarifaire (Enfant/Adulte/Résident/Étranger), un trajet, une chaloupe, un voyage du jour (150 places), et un portefeuille client crédité de 10 000 FCFA.
+Plus : la grille tarifaire (Enfant/Adulte/Résident/Étranger), les **plans d'abonnement** (1 / 6 / 12 mois), les **deux chaloupes** (Beer & Coumba Castel), des trajets récurrents, les **voyages des 7 prochains jours générés à tour de rôle** (comme le cron), et un portefeuille client crédité de 10 000 FCFA.
 
 ### 0.3 Lancer le serveur + les jobs
 ```bash

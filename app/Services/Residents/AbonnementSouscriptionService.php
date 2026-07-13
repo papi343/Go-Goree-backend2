@@ -89,11 +89,8 @@ class AbonnementSouscriptionService
             return null;
         }
 
-        // Idempotence : un abonnement déjà lié à ce paiement ? (ex. rejeu webhook)
-        $existant = Abonnement::where('resident_id', $user->resident->id)
-            ->where('plan_id', $plan->id)
-            ->where('created_at', '>=', $payement->created_at)
-            ->first();
+        // Idempotence fiable : lien dur au paiement (rejeu du webhook, etc.).
+        $existant = Abonnement::where('payement_id', $payement->id)->first();
         if ($existant) {
             return $existant;
         }
@@ -109,6 +106,7 @@ class AbonnementSouscriptionService
         return Abonnement::create([
             'resident_id' => $user->resident->id,
             'plan_id' => $plan->id,
+            'payement_id' => $payement->id,
             'date_debut' => $debut,
             'date_fin' => $debut->copy()->addMonths($plan->duree_mois),
             'montant' => $plan->prix,

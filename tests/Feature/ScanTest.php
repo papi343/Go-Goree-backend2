@@ -101,6 +101,18 @@ test('deux scans successifs du même billet : le 2e est DEJA_SCANNE (multi-contr
     expect(Scan::where('billet_id', $billet->id)->count())->toBe(2);
 });
 
+test('scanner sur une embarcation fermée est refusé (409)', function () {
+    $voyage = Voyage::factory()->create();
+    $embarquement = Embarquement::factory()->ferme()->create(['voyage_id' => $voyage->id]);
+    $billet = Billet::factory()->paye()->create(['voyage_id' => $voyage->id]);
+    Sanctum::actingAs(User::factory()->agent()->create());
+
+    $this->postJson('/api/v1/scans', ['qr_token' => $billet->qr_token, 'embarquement_id' => $embarquement->id])
+        ->assertStatus(409);
+
+    expect($billet->fresh()->statut)->toBe(StatutBilletEnum::PAYE);
+});
+
 test('le scan valide les champs requis', function () {
     Sanctum::actingAs(User::factory()->agent()->create());
 

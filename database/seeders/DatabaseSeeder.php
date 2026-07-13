@@ -6,6 +6,7 @@ use App\Enums\CategorieEnum;
 use App\Enums\JourEnum;
 use App\Enums\RoleEnum;
 use App\Enums\StatutChaloupeEnum;
+use App\Jobs\GenererVoyagesSemaineJob;
 use App\Models\Chaloupe;
 use App\Models\Plan;
 use App\Models\Portefeuille;
@@ -13,7 +14,6 @@ use App\Models\Role;
 use App\Models\Tarif;
 use App\Models\Trajet;
 use App\Models\User;
-use App\Models\Voyage;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -80,18 +80,29 @@ class DatabaseSeeder extends Seeder
             Plan::firstOrCreate(['nom' => $nom], ['duree_mois' => $duree, 'prix' => $prix, 'actif' => true]);
         }
 
-        // 5) Un trajet, une chaloupe et un voyage du jour
-        $trajet = Trajet::firstOrCreate(
-            ['jour' => JourEnum::LUNDI->value, 'heure_depart' => '07:30'],
-            ['duree' => 20]
-        );
-        $chaloupe = Chaloupe::firstOrCreate(
+        // 5) Les deux chaloupes de Gorée : Beer & Coumba Castel
+        Chaloupe::firstOrCreate(
             ['imatriculation' => 'IM-BEER-001'],
             ['nom' => 'Beer', 'capacite' => 150, 'statut' => StatutChaloupeEnum::ACTIVE->value]
         );
-        Voyage::firstOrCreate(
-            ['trajet_id' => $trajet->id, 'chaloupe_id' => $chaloupe->id, 'date_voyage' => now()->toDateString()],
-            ['places' => 150, 'places_restantes' => 150]
+        Chaloupe::firstOrCreate(
+            ['imatriculation' => 'IM-COUMBA-001'],
+            ['nom' => 'Coumba Castel', 'capacite' => 200, 'statut' => StatutChaloupeEnum::ACTIVE->value]
         );
+
+        // 6) Trajets récurrents (tous les jours, deux départs) pour alimenter le cron.
+        $departs = ['07:30', '16:00'];
+        foreach (JourEnum::cases() as $jour) {
+            foreach ($departs as $heure) {
+                Trajet::firstOrCreate(
+                    ['jour' => $jour->value, 'heure_depart' => $heure],
+                    ['duree' => 20]
+                );
+            }
+        }
+
+        // 7) Génération des voyages des 7 prochains jours (round-robin des chaloupes),
+        //    exactement comme le fait le cron quotidien.
+        (new GenererVoyagesSemaineJob)->handle();
     }
 }
