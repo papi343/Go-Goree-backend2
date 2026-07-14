@@ -14,6 +14,9 @@ return new class extends Migration
             $table->string('residence');
             $table->string('statut')->default('EN_COURS');
             $table->string('photo');
+            $table->string('cni_recto')->nullable();
+            $table->string('cni_verso')->nullable();
+            $table->string('certificat_residence')->nullable();
             $table->string('motif_refus')->nullable();
             $table->foreignUuid('valide_par')->nullable()->constrained('users')->nullOnDelete();
             $table->dateTime('date_validation')->nullable();

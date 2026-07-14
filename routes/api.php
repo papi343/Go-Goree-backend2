@@ -11,6 +11,7 @@ Route::prefix('v1')->group(function () {
     require __DIR__.'/api/v1/portefeuille.php';
     require __DIR__.'/api/v1/fraude.php';
     require __DIR__.'/api/v1/notifications.php';
+    require __DIR__.'/api/v1/analytics.php';
 });
 
 // Le webhook PayDunya n'est PAS require ici, volontairement : ce fichier

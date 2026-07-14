@@ -19,7 +19,7 @@ class UserController extends Controller
      */
     public function index()
     {
-        return UserResource::collection(User::with('role')->paginate());
+        return UserResource::collection(User::with(['role', 'portefeuille'])->paginate());
     }
 
     /**

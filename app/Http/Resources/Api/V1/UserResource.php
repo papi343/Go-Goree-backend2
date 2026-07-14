@@ -26,6 +26,9 @@ class UserResource extends JsonResource
                 'id' => $this->role->id,
                 'nom' => $this->role->nom,
             ] : null,
+            'portefeuille' => $this->relationLoaded('portefeuille') && $this->portefeuille ? [
+                'solde' => $this->portefeuille->solde,
+            ] : null,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

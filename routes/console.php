@@ -26,3 +26,6 @@ Schedule::job(new CheckExpiringAbonnementsJob)->dailyAt('08:00')->name('verifica
 
 // Génération chaque soir des voyages des 7 prochains jours (liste toujours à jour).
 Schedule::job(new GenererVoyagesSemaineJob)->dailyAt('22:00')->name('generation-voyages-semaine');
+
+// Envoi des rappels d'embarquement (15 min avant le départ) toutes les minutes.
+Schedule::command('goree:send-reminders')->everyMinute()->name('reminders-embarquement');

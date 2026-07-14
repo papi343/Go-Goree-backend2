@@ -20,7 +20,7 @@ class PayementController extends Controller
      */
     public function index()
     {
-        return response()->json(Payement::paginate());
+        return response()->json(Payement::with('user')->paginate());
     }
 
     /**

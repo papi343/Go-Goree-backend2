@@ -43,10 +43,33 @@ class DemandeResidenceController extends Controller
      */
     public function store(StoreDemandeResidenceRequest $request)
     {
+        $photoPath = $request->photo;
+        if ($request->hasFile('photo_file')) {
+            $photoPath = $request->file('photo_file')->store('demandes_residence', 'public');
+        }
+
+        $cniRectoPath = $request->cni_recto;
+        if ($request->hasFile('cni_recto_file')) {
+            $cniRectoPath = $request->file('cni_recto_file')->store('demandes_residence', 'public');
+        }
+
+        $cniVersoPath = $request->cni_verso;
+        if ($request->hasFile('cni_verso_file')) {
+            $cniVersoPath = $request->file('cni_verso_file')->store('demandes_residence', 'public');
+        }
+
+        $certificatResidencePath = $request->certificat_residence;
+        if ($request->hasFile('certificat_residence_file')) {
+            $certificatResidencePath = $request->file('certificat_residence_file')->store('demandes_residence', 'public');
+        }
+
         $demande = DemandeResidence::create([
             'carte_identite' => $request->carte_identite,
             'residence' => $request->residence,
-            'photo' => $request->photo,
+            'photo' => $photoPath ?? 'photo_defaut.png',
+            'cni_recto' => $cniRectoPath,
+            'cni_verso' => $cniVersoPath,
+            'certificat_residence' => $certificatResidencePath,
             'statut' => DemandeResidenceEnum::EN_COURS,
             'user_id' => $request->user()->id,
         ]);
