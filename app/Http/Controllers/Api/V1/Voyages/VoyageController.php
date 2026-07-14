@@ -90,4 +90,15 @@ class VoyageController extends Controller
 
         return response()->json(null, Response::HTTP_NO_CONTENT);
     }
+
+    /**
+     * Déclencher manuellement la génération des voyages des 7 prochains jours.
+     */
+    public function generer()
+    {
+        (new \App\Jobs\GenererVoyagesSemaineJob)->handle();
+        return response()->json([
+            'message' => 'Génération des voyages pour les 7 prochains jours terminée avec succès.'
+        ]);
+    }
 }

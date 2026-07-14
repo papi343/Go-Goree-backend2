@@ -11,7 +11,7 @@ uses(RefreshDatabase::class);
 test('le seeder amorce les données de démo (2 chaloupes, plans, voyages de la semaine)', function () {
     $this->seed(DatabaseSeeder::class);
 
-    expect(Chaloupe::count())->toBe(2);
+    expect(Chaloupe::count())->toBe(3);
     $this->assertDatabaseHas('chaloupes', ['nom' => 'Beer']);
     $this->assertDatabaseHas('chaloupes', ['nom' => 'Coumba Castel']);
 

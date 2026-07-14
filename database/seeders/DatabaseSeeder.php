@@ -132,7 +132,7 @@ class DatabaseSeeder extends Seeder
         // 7) Chaloupes
         $beer = Chaloupe::firstOrCreate(
             ['imatriculation' => 'IM-BEER-001'],
-            ['nom' => 'Joseph Ndiaye', 'capacite' => 450, 'statut' => StatutChaloupeEnum::ACTIVE->value]
+            ['nom' => 'Beer', 'capacite' => 450, 'statut' => StatutChaloupeEnum::ACTIVE->value]
         );
         $castel = Chaloupe::firstOrCreate(
             ['imatriculation' => 'IM-COUMBA-001'],
@@ -203,39 +203,49 @@ class DatabaseSeeder extends Seeder
                     ? StatutBilletEnum::UTILISE 
                     : ($index % 3 === 1 ? StatutBilletEnum::PAYE : StatutBilletEnum::EXPIRE);
 
-                $billet = Billet::create([
-                    'qr_token' => 'QR-' . strtoupper(Str::random(12)),
-                    'montant' => $tarif->prix,
-                    'statut' => $statutBillet->value,
-                    'voyage_id' => $voyage->id,
-                    'tarif_id' => $tarif->id,
-                    'user_id' => $client->id,
-                ]);
-
-                // Créer le paiement associé
-                $payement = Payement::create([
-                    'reference' => 'PAY-' . strtoupper(Str::random(8)),
-                    'montant' => $tarif->prix,
-                    'statut' => 'ACCEPTE',
-                    'mode' => $modes[rand(0, 4)],
-                    'type_transaction' => 'ACHAT_BILLET',
-                    'billet_id' => $billet->id,
-                    'user_id' => $client->id,
-                ]);
-
-                // Si le billet est utilisé, créer le scan
-                if ($statutBillet === StatutBilletEnum::UTILISE) {
-                    Scan::create([
-                        'resultat' => 'VALIDE',
-                        'billet_id' => $billet->id,
-                        'scanne_par' => collect($agents)->random()->id,
-                        'created_at' => now()->subHours(rand(1, 6)),
+                $existant = Billet::where('user_id', $client->id)
+                    ->where('voyage_id', $voyage->id)
+                    ->first();
+                    
+                if (!$existant) {
+                    $billet = Billet::create([
+                        'qr_token' => 'QR-' . strtoupper(Str::random(12)),
+                        'montant' => $tarif->prix,
+                        'statut' => $statutBillet->value,
+                        'voyage_id' => $voyage->id,
+                        'tarif_id' => $tarif->id,
+                        'user_id' => $client->id,
                     ]);
+
+                    // Créer le paiement associé
+                    Payement::create([
+                        'reference' => 'PAY-' . strtoupper(Str::random(8)),
+                        'montant' => $tarif->prix,
+                        'statut' => 'ACCEPTE',
+                        'mode' => $modes[rand(0, 4)],
+                        'type_transaction' => 'ACHAT_BILLET',
+                        'billet_id' => $billet->id,
+                        'user_id' => $client->id,
+                    ]);
+
+                    // Si le billet est utilisé, créer le scan
+                    if ($statutBillet === StatutBilletEnum::UTILISE) {
+                        Scan::create([
+                            'resultat' => 'VALIDE',
+                            'billet_id' => $billet->id,
+                            'scanne_par' => collect($agents)->random()->id,
+                            'created_at' => now()->subHours(rand(1, 6)),
+                        ]);
+                    }
                 }
             }
 
             // Standalone Wallet recharge records for history
-            if (rand(0, 1)) {
+            $rechExistant = Payement::where('user_id', $client->id)
+                ->where('type_transaction', 'RECHARGE_PORTEFEUILLE')
+                ->first();
+                
+            if (!$rechExistant && rand(0, 1)) {
                 Payement::create([
                     'reference' => 'RECH-' . strtoupper(Str::random(8)),
                     'montant' => rand(2, 6) * 5000,

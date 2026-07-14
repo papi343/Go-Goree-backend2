@@ -15,6 +15,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Écriture (création/modification/suppression) : réservée aux administrateurs.
     Route::middleware('role:Admin')->group(function () {
+        Route::post('voyages/generer', [VoyageController::class, 'generer']);
         Route::apiResource('voyages', VoyageController::class)->except(['index', 'show']);
         Route::apiResource('trajets', TrajetController::class)->except(['index', 'show']);
         Route::apiResource('chaloupes', ChaloupeController::class)->except(['index', 'show']);
