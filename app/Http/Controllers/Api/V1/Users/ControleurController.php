@@ -73,4 +73,30 @@ class ControleurController extends Controller
             ->response()
             ->setStatusCode(Response::HTTP_CREATED);
     }
+
+    /**
+     * Renvoyer l'e-mail d'activation/invitation à un contrôleur.
+     */
+    public function resendInvitation(string $id)
+    {
+        $user = User::with('role')
+            ->whereHas('role', fn ($q) => $q->where('nom', RoleEnum::AGENT->value))
+            ->findOrFail($id);
+
+        if ($user->password_reset_at !== null) {
+            return response()->json([
+                'message' => 'Ce compte est déjà activé.',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $token = $this->passwordReset->genererToken($user);
+
+        Mail::to($user->email)->queue(
+            new ReinitialisationMotDePasseMail($user, $token, invitation: true)
+        );
+
+        return response()->json([
+            'message' => "L'email d'activation a été renvoyé avec succès.",
+        ]);
+    }
 }
