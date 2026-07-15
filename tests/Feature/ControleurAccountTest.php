@@ -75,3 +75,66 @@ test('la création de contrôleur exige une authentification', function () {
         'prenom' => 'X', 'nom' => 'Y', 'email' => 'x@y.sn',
     ])->assertUnauthorized();
 });
+
+test('un admin peut désactiver un contrôleur ce qui révoque ses jetons d\'accès', function () {
+    Sanctum::actingAs($admin = User::factory()->admin()->create());
+    $agentRole = Role::factory()->agent()->create();
+    $controleur = User::factory()->create([
+        'role_id' => $agentRole->id,
+        'active' => true,
+    ]);
+
+    // Simuler que le contrôleur a un jeton actif
+    $token = $controleur->createToken('test_token')->plainTextToken;
+    expect($controleur->tokens)->toHaveCount(1);
+
+    // L'admin désactive le contrôleur
+    $this->putJson("/api/v1/users/{$controleur->id}", [
+        'active' => false,
+    ])->assertOk();
+
+    // Vérifier que le contrôleur est désactivé et ses jetons supprimés
+    $controleur->refresh();
+    expect($controleur->active)->toBeFalse();
+    expect($controleur->tokens)->toHaveCount(0);
+
+    // Tenter de se connecter avec l'utilisateur désactivé
+    $this->postJson('/api/v1/login', [
+        'email' => $controleur->email,
+        'mot_de_passe' => 'password', // Le mot de passe par défaut des factories
+    ])->assertStatus(403);
+});
+
+test('un admin peut renvoyer l\'email d\'invitation à un contrôleur non activé', function () {
+    Mail::fake();
+    Sanctum::actingAs(User::factory()->admin()->create());
+    $agentRole = Role::factory()->agent()->create();
+    $controleur = User::factory()->create([
+        'role_id' => $agentRole->id,
+        'password_reset_at' => null,
+    ]);
+
+    // Renvoyer l'invitation
+    $this->postJson("/api/v1/controleurs/{$controleur->id}/renvoyer-invitation")
+        ->assertOk()
+        ->assertJsonPath('message', "L'email d'activation a été renvoyé avec succès.");
+
+    // Vérifier qu'un nouveau jeton a été créé et un e-mail envoyé
+    $this->assertDatabaseHas('password_reset_tokens', ['email' => $controleur->email]);
+    Mail::assertQueued(ReinitialisationMotDePasseMail::class, fn ($mail) => $mail->invitation === true
+        && $mail->hasTo($controleur->email));
+});
+
+test('on ne peut pas renvoyer l\'invitation à un contrôleur déjà activé', function () {
+    Sanctum::actingAs(User::factory()->admin()->create());
+    $agentRole = Role::factory()->agent()->create();
+    $controleur = User::factory()->create([
+        'role_id' => $agentRole->id,
+        'password_reset_at' => now(),
+    ]);
+
+    // Tenter de renvoyer l'invitation
+    $this->postJson("/api/v1/controleurs/{$controleur->id}/renvoyer-invitation")
+        ->assertStatus(422)
+        ->assertJsonPath('message', 'Ce compte est déjà activé.');
+});

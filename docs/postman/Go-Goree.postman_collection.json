@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Go Gorée - API v1",
-    "description": "Collection complète des workflows Go Gorée : authentification, comptes contrôleurs + réinitialisation de mot de passe, demandes de résidence, données de référence (voyages/trajets/chaloupes/tarifs), billetterie (portefeuille & PayDunya), scan, portefeuille, résidents/abonnements, notifications, fraude et webhook PayDunya. Tokens et identifiants capturés automatiquement. Autorisations : la plupart des écritures sont réservées aux Admin ; le scan aux Agent/Admin.",
+    "description": "Collection complète des workflows Go Gorée : inscription, auth, comptes contrôleurs + reset mot de passe, demandes de résidence, données de référence (voyages/trajets/chaloupes/tarifs), plans & abonnements, billetterie (portefeuille & PayDunya), embarquement & scan, portefeuille, résidents, notifications, fraude, webhook PayDunya. Tokens et identifiants capturés automatiquement.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -17,11 +17,13 @@
     { "key": "controleur_email", "value": "modou.controleur@goree.sn" },
     { "key": "reset_token", "value": "" },
     { "key": "demande_id", "value": "" },
-    { "key": "voyage_id", "value": "" },
     { "key": "trajet_id", "value": "" },
     { "key": "chaloupe_id", "value": "" },
+    { "key": "voyage_id", "value": "" },
+    { "key": "plan_id", "value": "" },
     { "key": "billet_id", "value": "" },
     { "key": "qr_token", "value": "" },
+    { "key": "embarquement_id", "value": "" },
     { "key": "notification_id", "value": "" }
   ],
   "item": [
@@ -29,11 +31,22 @@
       "name": "1. Authentification",
       "item": [
         {
-          "name": "Login Admin",
+          "name": "Inscription (register)",
           "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
             "const d = pm.response.json().data;",
-            "pm.collectionVariables.set('admin_token', d.access_token);",
-            "pm.test('token admin reçu', () => pm.expect(d.access_token).to.be.a('string'));"
+            "pm.collectionVariables.set('client_token', d.access_token);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"prenom\": \"Nouveau\",\n  \"nom\": \"Client\",\n  \"email\": \"nouveau.client@goree.sn\",\n  \"telephone\": \"770000001\",\n  \"mot_de_passe\": \"Passer@1234\",\n  \"mot_de_passe_confirmation\": \"Passer@1234\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{base_url}}/register", "host": ["{{base_url}}"], "path": ["register"] }
+          }
+        },
+        {
+          "name": "Login Admin",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.collectionVariables.set('admin_token', pm.response.json().data.access_token);"
           ] } }],
           "request": {
             "method": "POST",
@@ -116,9 +129,7 @@
         {
           "name": "Créer un contrôleur",
           "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
-            "const d = pm.response.json().data;",
-            "pm.collectionVariables.set('controleur_email', d.email);",
-            "pm.test('role Agent', () => pm.expect(d.role.nom).to.eql('Agent'));"
+            "pm.collectionVariables.set('controleur_email', pm.response.json().data.email);"
           ] } }],
           "request": {
             "method": "POST",
@@ -133,15 +144,6 @@
             "method": "GET",
             "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{admin_token}}" }],
             "url": { "raw": "{{base_url}}/controleurs", "host": ["{{base_url}}"], "path": ["controleurs"] }
-          }
-        },
-        {
-          "name": "Créer un utilisateur (générique)",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{admin_token}}" }],
-            "body": { "mode": "raw", "raw": "{\n  \"prenom\": \"Awa\",\n  \"nom\": \"Ndiaye\",\n  \"email\": \"awa.ndiaye@goree.sn\",\n  \"mot_de_passe\": \"Passer@1234\",\n  \"role_id\": \"<UUID_ROLE>\"\n}", "options": { "raw": { "language": "json" } } },
-            "url": { "raw": "{{base_url}}/users", "host": ["{{base_url}}"], "path": ["users"] }
           }
         }
       ]
@@ -167,14 +169,6 @@
             "method": "GET",
             "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{admin_token}}" }],
             "url": { "raw": "{{base_url}}/demandes-residence", "host": ["{{base_url}}"], "path": ["demandes-residence"] }
-          }
-        },
-        {
-          "name": "Détail d'une demande",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{admin_token}}" }],
-            "url": { "raw": "{{base_url}}/demandes-residence/{{demande_id}}", "host": ["{{base_url}}"], "path": ["demandes-residence", "{{demande_id}}"] }
           }
         },
         {
@@ -245,7 +239,7 @@
           }
         },
         {
-          "name": "Lister les voyages",
+          "name": "Lister les voyages (filtres)",
           "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
             "const rows = pm.response.json().data;",
             "if (rows && rows.length) pm.collectionVariables.set('voyage_id', rows[0].id);"
@@ -253,7 +247,15 @@
           "request": {
             "method": "GET",
             "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{client_token}}" }],
-            "url": { "raw": "{{base_url}}/voyages", "host": ["{{base_url}}"], "path": ["voyages"] }
+            "url": {
+              "raw": "{{base_url}}/voyages?periode=semaine&disponibles=true",
+              "host": ["{{base_url}}"],
+              "path": ["voyages"],
+              "query": [
+                { "key": "periode", "value": "semaine", "description": "today | semaine" },
+                { "key": "disponibles", "value": "true" }
+              ]
+            }
           }
         },
         {
@@ -272,19 +274,49 @@
             "body": { "mode": "raw", "raw": "{\n  \"date_voyage\": \"2026-07-21\",\n  \"places\": 120,\n  \"places_restantes\": 120,\n  \"trajet_id\": \"{{trajet_id}}\",\n  \"chaloupe_id\": \"{{chaloupe_id}}\"\n}", "options": { "raw": { "language": "json" } } },
             "url": { "raw": "{{base_url}}/voyages/{{voyage_id}}", "host": ["{{base_url}}"], "path": ["voyages", "{{voyage_id}}"] }
           }
+        }
+      ]
+    },
+    {
+      "name": "5. Plans & Abonnements",
+      "item": [
+        {
+          "name": "Lister les plans (public)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const rows = pm.response.json();",
+            "if (rows && rows.length) pm.collectionVariables.set('plan_id', rows[0].id);"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{client_token}}" }],
+            "url": { "raw": "{{base_url}}/plans", "host": ["{{base_url}}"], "path": ["plans"] }
+          }
         },
         {
-          "name": "Supprimer un voyage",
+          "name": "Créer un plan (admin)",
           "request": {
-            "method": "DELETE",
+            "method": "POST",
             "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{admin_token}}" }],
-            "url": { "raw": "{{base_url}}/voyages/{{voyage_id}}", "host": ["{{base_url}}"], "path": ["voyages", "{{voyage_id}}"] }
+            "body": { "mode": "raw", "raw": "{\n  \"nom\": \"Abonnement 1 mois\",\n  \"duree_mois\": 1,\n  \"prix\": 5000\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{base_url}}/plans", "host": ["{{base_url}}"], "path": ["plans"] }
+          }
+        },
+        {
+          "name": "Souscrire un abonnement (résident)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "console.log('Lien de paiement PayDunya : ' + pm.response.json().redirect_url);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{client_token}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"plan_id\": \"{{plan_id}}\",\n  \"payment_mode\": \"PORTEFEUILLE\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{base_url}}/abonnements/souscrire", "host": ["{{base_url}}"], "path": ["abonnements", "souscrire"] }
           }
         }
       ]
     },
     {
-      "name": "5. Billetterie & Scan",
+      "name": "6. Billetterie",
       "item": [
         {
           "name": "Acheter un billet - Portefeuille",
@@ -305,7 +337,7 @@
           "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
             "const r = pm.response.json();",
             "console.log('Lien de paiement PayDunya : ' + r.redirect_url);",
-            "if (r.billet) pm.collectionVariables.set('billet_id', r.billet.id);"
+            "if (r.billet) { pm.collectionVariables.set('billet_id', r.billet.id); pm.collectionVariables.set('qr_token', r.billet.qr_token); }"
           ] } }],
           "request": {
             "method": "POST",
@@ -329,20 +361,53 @@
             "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{client_token}}" }],
             "url": { "raw": "{{base_url}}/billets/{{billet_id}}", "host": ["{{base_url}}"], "path": ["billets", "{{billet_id}}"] }
           }
-        },
+        }
+      ]
+    },
+    {
+      "name": "7. Embarquement & Scan (contrôleur)",
+      "item": [
         {
-          "name": "Scanner un billet (contrôleur)",
+          "name": "Ouvrir l'embarcation",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.collectionVariables.set('embarquement_id', pm.response.json().id);"
+          ] } }],
           "request": {
             "method": "POST",
             "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{controleur_token}}" }],
-            "body": { "mode": "raw", "raw": "{\n  \"qr_token\": \"{{qr_token}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "body": { "mode": "raw", "raw": "{\n  \"voyage_id\": \"{{voyage_id}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{base_url}}/embarquements/ouvrir", "host": ["{{base_url}}"], "path": ["embarquements", "ouvrir"] }
+          }
+        },
+        {
+          "name": "Lister les embarcations ouvertes",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{controleur_token}}" }],
+            "url": { "raw": "{{base_url}}/embarquements", "host": ["{{base_url}}"], "path": ["embarquements"] }
+          }
+        },
+        {
+          "name": "Scanner un billet",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{controleur_token}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"qr_token\": \"{{qr_token}}\",\n  \"embarquement_id\": \"{{embarquement_id}}\"\n}", "options": { "raw": { "language": "json" } } },
             "url": { "raw": "{{base_url}}/scans", "host": ["{{base_url}}"], "path": ["scans"] }
+          }
+        },
+        {
+          "name": "Fermer l'embarcation",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{controleur_token}}" }],
+            "url": { "raw": "{{base_url}}/embarquements/{{embarquement_id}}/fermer", "host": ["{{base_url}}"], "path": ["embarquements", "{{embarquement_id}}", "fermer"] }
           }
         }
       ]
     },
     {
-      "name": "6. Portefeuille",
+      "name": "8. Portefeuille",
       "item": [
         {
           "name": "Voir mon portefeuille",
@@ -367,7 +432,7 @@
       ]
     },
     {
-      "name": "7. Résidents & Abonnements (admin)",
+      "name": "9. Résidents & Abonnements (admin)",
       "item": [
         {
           "name": "Lister les résidents",
@@ -388,7 +453,7 @@
       ]
     },
     {
-      "name": "8. Notifications & Fraude",
+      "name": "10. Notifications & Fraude",
       "item": [
         {
           "name": "Mes notifications",
@@ -425,20 +490,11 @@
             "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{admin_token}}" }],
             "url": { "raw": "{{base_url}}/alertes-fraude", "host": ["{{base_url}}"], "path": ["alertes-fraude"] }
           }
-        },
-        {
-          "name": "Traiter une alerte de fraude (admin)",
-          "request": {
-            "method": "PUT",
-            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{admin_token}}" }],
-            "body": { "mode": "raw", "raw": "{\n  \"statut\": \"CONFIRMEE\"\n}", "options": { "raw": { "language": "json" } } },
-            "url": { "raw": "{{base_url}}/alertes-fraude/<ALERTE_ID>", "host": ["{{base_url}}"], "path": ["alertes-fraude", "<ALERTE_ID>"] }
-          }
         }
       ]
     },
     {
-      "name": "9. Webhook PayDunya (simulation mode fake)",
+      "name": "11. Webhook PayDunya (simulation mode fake)",
       "item": [
         {
           "name": "Notifier le webhook",

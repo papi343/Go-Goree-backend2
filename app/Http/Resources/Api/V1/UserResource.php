@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Api\V1;
 
+use App\Enums\RoleEnum;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -22,6 +23,9 @@ class UserResource extends JsonResource
             'email' => $this->email,
             'telephone' => $this->telephone,
             'active' => (bool) $this->active,
+            'password_reset_at' => $this->password_reset_at,
+            'invite_pending' => $this->password_reset_at === null && $this->relationLoaded('role') && $this->role && $this->role->nom === RoleEnum::AGENT,
+            'traversees_count' => $this->relationLoaded('role') && $this->role && $this->role->nom === \App\Enums\RoleEnum::CLIENT ? $this->billets()->where('statut', \App\Enums\StatutBilletEnum::UTILISE->value)->count() : 0,
             'role' => $this->relationLoaded('role') && $this->role ? [
                 'id' => $this->role->id,
                 'nom' => $this->role->nom,

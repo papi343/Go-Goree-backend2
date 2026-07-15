@@ -113,7 +113,7 @@ L'anti-doublon (§3) et l'alerte de fraude s'appliquent aussi ici.
 1. **`POST /api/v1/embarquements/ouvrir`** `{voyage_id}` — ouvre (ou récupère) la
    session d'embarquement du voyage. **Idempotente/partagée** : plusieurs contrôleurs
    travaillent sur la **même** session. Fermeture : `/{id}/fermer`.
-2. **`POST /api/v1/scans`** `{qr_token, embarquement_id}` — résultats :
+2. **`POST /api/v1/scans`** `{qr_token, embarquement_id}` (la session doit être **ouverte**, sinon `409`) — résultats :
 
 | Résultat | Cas | HTTP |
 |---|---|---|
