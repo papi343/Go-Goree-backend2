@@ -25,7 +25,7 @@ class BilletController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Billet::with(['voyage', 'tarif']);
+        $query = Billet::with(['voyage', 'tarif', 'user']);
 
         if ($request->user()->role && $request->user()->role->nom === RoleEnum::CLIENT) {
             $query->where('user_id', $request->user()->id);

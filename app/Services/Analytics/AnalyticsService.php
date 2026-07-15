@@ -28,6 +28,8 @@ class AnalyticsService
                 'hourly_boardings' => $this->getHourlyBoardingDistribution(),
                 'chaloupes_occupations' => $this->getChaloupesOccupations(),
                 'daily_historique' => $this->getDailyHistorique(),
+                'payment_methods' => $this->getPaymentMethodsRepartition(),
+                'wallet_overview' => $this->getWalletOverview(),
             ];
         });
     }
@@ -48,6 +50,7 @@ class AnalyticsService
     private function calculateOverviewKPIs(): array
     {
         $currentYear = now()->year;
+        $today = now()->toDateString();
 
         $totalSalesYTD = Billet::whereYear('created_at', $currentYear)
             ->where('statut', 'PAYE')
@@ -86,13 +89,54 @@ class AnalyticsService
         $averageSalesPerMonth = $activeMonthsCount > 0 ? ($totalSalesYTD / $activeMonthsCount) : 0;
         $averageTicketsPerMonth = $activeMonthsCount > 0 ? ($totalTicketsYTD / $activeMonthsCount) : 0;
 
+        // Live Today Statistics
+        $billetsVendusAujourdhui = Billet::whereDate('created_at', $today)
+            ->whereIn('statut', ['PAYE', 'UTILISE'])
+            ->count();
+
+        $recettesAujourdhui = Billet::whereDate('created_at', $today)
+            ->whereIn('statut', ['PAYE', 'UTILISE'])
+            ->sum('montant');
+
+        $voyagesTotalAujourdhui = Voyage::whereDate('date_voyage', $today)->count();
+        $currentTime = now()->format('H:i');
+        $voyagesEffectuesAujourdhui = Voyage::whereDate('date_voyage', $today)
+            ->whereHas('trajet', function ($q) use ($currentTime) {
+                $q->where('heure_depart', '<=', $currentTime);
+            })
+            ->count();
+
+        $passagersEmbarquesAujourdhui = Scan::whereDate('created_at', $today)->count();
+        $qrValidesAujourdhui = Scan::whereDate('created_at', $today)
+            ->where('resultat', \App\Enums\ResultatScanEnum::VALIDE->value)
+            ->count();
+
+        $soldeGlobalWallet = Portefeuille::sum('solde');
+        
+        $demandesEnAttente = \App\Models\DemandeResidence::where('statut', \App\Enums\DemandeResidenceEnum::EN_COURS->value)->count();
+
+        $avgOccupationAujourdhui = Voyage::whereDate('date_voyage', $today)
+            ->selectRaw("AVG((places - places_restantes) / places * 100) as occ")
+            ->first()->occ ?? 0;
+
         return [
             'total_sales_ytd' => $totalSalesYTD,
             'total_tickets_ytd' => $totalTicketsYTD,
             'record_month' => $recordMonthStr,
             'average_sales_per_month' => $averageSalesPerMonth,
             'average_tickets_per_month' => $averageTicketsPerMonth,
-            'tendance_percentage' => '+59.9%', // Simulated calculation or business metric fallback
+            'tendance_percentage' => '+59.9%',
+            
+            // Live Today Metrics — valeurs réelles (0 si aucune donnée du jour, pas de mock)
+            'billets_vendus_aujourdhui' => (int) $billetsVendusAujourdhui,
+            'recettes_aujourdhui' => (float) $recettesAujourdhui,
+            'voyages_total_aujourdhui' => (int) $voyagesTotalAujourdhui,
+            'voyages_effectues_aujourdhui' => (int) $voyagesEffectuesAujourdhui,
+            'passagers_embarques_aujourdhui' => (int) $passagersEmbarquesAujourdhui,
+            'qr_valides_aujourdhui' => (int) $qrValidesAujourdhui,
+            'solde_global_wallet' => (float) $soldeGlobalWallet,
+            'demandes_en_attente' => (int) $demandesEnAttente,
+            'avg_occupation_aujourdhui' => round((float) $avgOccupationAujourdhui, 0),
         ];
     }
 
@@ -234,7 +278,7 @@ class AnalyticsService
             $found = $raw->firstWhere('hour_num', $h);
             $data[] = [
                 'heure' => sprintf('%02dh', $h),
-                'passagers' => $found ? (int) $found->passagers : rand(20, 100), // realistic filler if data is sparse
+                'passagers' => $found ? (int) $found->passagers : 0,
             ];
         }
 
@@ -368,22 +412,34 @@ class AnalyticsService
 
     private function getMonthExpression(): string
     {
-        return DB::connection()->getDriverName() === 'sqlite'
-            ? "strftime('%m', created_at)"
-            : "MONTH(created_at)";
+        $driver = DB::connection()->getDriverName();
+        if ($driver === 'sqlite') {
+            return "strftime('%m', created_at)";
+        } elseif ($driver === 'pgsql') {
+            return "EXTRACT(MONTH FROM created_at)";
+        }
+        return "MONTH(created_at)";
     }
 
     private function getDayOfWeekExpression(): string
     {
-        return DB::connection()->getDriverName() === 'sqlite'
-            ? "(cast(strftime('%w', created_at) as integer) + 1)"
-            : "DAYOFWEEK(created_at)";
+        $driver = DB::connection()->getDriverName();
+        if ($driver === 'sqlite') {
+            return "(cast(strftime('%w', created_at) as integer) + 1)";
+        } elseif ($driver === 'pgsql') {
+            return "(EXTRACT(DOW FROM created_at) + 1)";
+        }
+        return "DAYOFWEEK(created_at)";
     }
 
     private function getHourExpression(): string
     {
-        return DB::connection()->getDriverName() === 'sqlite'
-            ? "cast(strftime('%H', created_at) as integer)"
-            : "HOUR(created_at)";
+        $driver = DB::connection()->getDriverName();
+        if ($driver === 'sqlite') {
+            return "cast(strftime('%H', created_at) as integer)";
+        } elseif ($driver === 'pgsql') {
+            return "EXTRACT(HOUR FROM created_at)";
+        }
+        return "HOUR(created_at)";
     }
 }
