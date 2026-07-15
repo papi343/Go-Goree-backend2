@@ -22,6 +22,12 @@ class BilletResource extends JsonResource
             'statut' => $this->statut,
             'voyage' => new VoyageResource($this->whenLoaded('voyage')),
             'tarif' => $this->tarif,
+            'user' => $this->whenLoaded('user', fn () => [
+                'id' => $this->user->id,
+                'prenom' => $this->user->prenom,
+                'nom' => $this->user->nom,
+                'email' => $this->user->email,
+            ]),
             'created_at' => $this->created_at,
         ];
     }
