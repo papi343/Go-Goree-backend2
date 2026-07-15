@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Rapports\RapportController;
 use App\Http\Controllers\Api\V1\Auth\PersonalAccessTokenController;
 use App\Http\Controllers\Api\V1\Users\ControleurController;
 use App\Http\Controllers\Api\V1\Users\UserController;
@@ -13,6 +14,10 @@ Route::middleware(['auth:sanctum', 'role:Admin'])->group(function () {
 
     Route::apiResource('users', UserController::class);
 
+    // Rapports
+    Route::get('rapports', [RapportController::class, 'index']);
+    Route::post('rapports', [RapportController::class, 'store']);
+    Route::get('rapports/{id}/telecharger', [RapportController::class, 'telecharger']);
     // Clés API & Sessions actives
     Route::get('tokens', [PersonalAccessTokenController::class, 'index']);
     Route::post('tokens', [PersonalAccessTokenController::class, 'store']);
