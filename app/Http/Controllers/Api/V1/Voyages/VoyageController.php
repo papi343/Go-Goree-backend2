@@ -76,11 +76,29 @@ class VoyageController extends Controller
 
     /**
      * Mettre à jour un voyage.
+     *
+     * Si la capacité (`places`) change, on recalcule `places_restantes` =
+     * nouvelles places − nombre de billets déjà vendus pour ce voyage, afin
+     * de ne jamais désynchroniser le stock réel via le frontend.
      */
     public function update(UpdateVoyageRequest $request, $id)
     {
-        $record = Voyage::findOrFail($id);
-        $record->update($request->validated());
+        $record = Voyage::withCount([
+            'billets as billets_vendus' => fn ($q) => $q->whereIn('statut', ['PAYE', 'UTILISE']),
+        ])->findOrFail($id);
+
+        $data = $request->validated();
+
+        // Recalcul automatique des places restantes si la capacité est modifiée.
+        if (isset($data['places'])) {
+            $vendus = $record->billets_vendus ?? 0;
+            $data['places_restantes'] = max(0, $data['places'] - $vendus);
+        }
+
+        // Ne jamais accepter places_restantes brut envoyé par le client.
+        unset($data['places_restantes_client']);
+
+        $record->update($data);
 
         app(\App\Services\Logs\ActivityLogService::class)->log(
             "Modification voyage",
@@ -109,18 +127,21 @@ class VoyageController extends Controller
 
     /**
      * Déclencher manuellement la génération des voyages des 7 prochains jours.
+     *
+     * Le job est envoyé sur la queue Redis (QUEUE_CONNECTION=redis) afin de ne
+     * pas bloquer la réponse HTTP pendant la génération.
      */
     public function generer()
     {
-        (new \App\Jobs\GenererVoyagesSemaineJob)->handle();
+        \App\Jobs\GenererVoyagesSemaineJob::dispatch();
 
         app(\App\Services\Logs\ActivityLogService::class)->log(
             "Génération voyages",
-            "Déclenchement de la génération automatique pour les 7 prochains jours"
+            "Job de génération automatique mis en file d'attente (7 prochains jours)"
         );
 
         return response()->json([
-            'message' => 'Génération des voyages pour les 7 prochains jours terminée avec succès.'
+            'message' => 'Génération des voyages mise en file d\'attente. Les voyages seront disponibles dans quelques instants.'
         ]);
     }
 }
