@@ -24,10 +24,11 @@ class UpdateVoyageRequest extends FormRequest
     {
         return [
             'date_voyage' => ['sometimes', 'date', 'after_or_equal:today'],
-            'places' => ['sometimes', 'integer', 'min:1'],
-            'places_restantes' => ['sometimes', 'integer', 'min:0'],
-            'trajet_id' => ['sometimes', 'exists:trajets,id'],
+            'places'      => ['sometimes', 'integer', 'min:1'],
+            'trajet_id'   => ['sometimes', 'exists:trajets,id'],
             'chaloupe_id' => ['sometimes', 'exists:chaloupes,id'],
+            // places_restantes est recalculé automatiquement côté serveur :
+            // nouvelles_places − billets_vendus (statut PAYE ou UTILISE).
         ];
     }
 }
