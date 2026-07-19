@@ -22,7 +22,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('demandes-residence/{id}/valider', [DemandeResidenceController::class, 'valider']);
         Route::post('demandes-residence/{id}/refuser', [DemandeResidenceController::class, 'refuser']);
         Route::apiResource('demandes-residence', DemandeResidenceController::class)
-            ->only(['update', 'destroy']);
+            ->only(['destroy']);
 
         Route::apiResource('residents', ResidentController::class);
         Route::apiResource('abonnements', AbonnementController::class);

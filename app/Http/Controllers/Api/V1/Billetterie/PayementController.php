@@ -6,8 +6,9 @@ use App\Enums\StatutPayementEnum;
 use App\Events\PaiementAccepte;
 use App\Events\PaiementRefuse;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\Billetterie\StorePayementRequest;
+use App\Http\Requests\Api\V1\Billetterie\UpdatePayementRequest;
 use App\Models\Payement;
-use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 /**
@@ -26,9 +27,9 @@ class PayementController extends Controller
     /**
      * Créer manuellement un enregistrement de paiement.
      */
-    public function store(Request $request)
+    public function store(StorePayementRequest $request)
     {
-        $record = Payement::create($request->all());
+        $record = Payement::create($request->validated());
 
         return response()->json($record, Response::HTTP_CREATED);
     }
@@ -44,11 +45,11 @@ class PayementController extends Controller
     /**
      * Mettre à jour les informations d'un paiement.
      */
-    public function update(Request $request, $id)
+    public function update(UpdatePayementRequest $request, $id)
     {
         $record = Payement::findOrFail($id);
         $oldStatus = $record->statut;
-        $record->update($request->all());
+        $record->update($request->validated());
 
         if ($record->statut !== $oldStatus) {
             if ($record->statut === StatutPayementEnum::ACCEPTE) {

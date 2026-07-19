@@ -122,6 +122,17 @@ class DemandeResidenceController extends Controller
     }
 
     /**
+     * Supprimer une demande de résidence.
+     */
+    public function destroy($id)
+    {
+        $demande = DemandeResidence::findOrFail($id);
+        $demande->delete();
+
+        return response()->json(null, Response::HTTP_NO_CONTENT);
+    }
+
+    /**
      * Refuser une demande de résidence avec un motif.
      */
     public function refuser(ValiderDemandeResidenceRequest $request, $id)

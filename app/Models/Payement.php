@@ -17,7 +17,6 @@ class Payement extends Model
     protected $fillable = [
         'reference',
         'montant',
-        'timestamp',
         'statut',
         'mode',
         'type_transaction',
@@ -34,7 +33,6 @@ class Payement extends Model
             'mode' => ModePayementEnum::class,
             'type_transaction' => TypeTransactionPayDunyaEnum::class,
             'montant' => 'decimal:2',
-            'timestamp' => 'datetime',
         ];
     }
 

@@ -4,6 +4,7 @@ namespace App\Http\Requests\Api\V1\Voyages;
 
 use App\Enums\CategorieEnum;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Enum;
 
 /**
@@ -25,9 +26,12 @@ class StoreTarifRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'categorie' => ['required', new Enum(CategorieEnum::class)],
+            'categorie' => [
+                'required',
+                new Enum(CategorieEnum::class),
+                Rule::unique('tarifs', 'categorie')->whereNull('deleted_at'),
+            ],
             'prix' => ['required', 'numeric', 'min:0'],
-            'trajet_id' => ['required', 'exists:trajets,id'],
         ];
     }
 }

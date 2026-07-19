@@ -4,6 +4,7 @@ namespace App\Http\Requests\Api\V1\Voyages;
 
 use App\Enums\JourEnum;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Enum;
 
 /**
@@ -26,7 +27,13 @@ class StoreTrajetRequest extends FormRequest
     {
         return [
             'jour' => ['required', new Enum(JourEnum::class)],
-            'heure_depart' => ['required', 'date_format:H:i'],
+            'heure_depart' => [
+                'required',
+                'date_format:H:i',
+                Rule::unique('trajets')
+                    ->where(fn ($query) => $query->where('jour', $this->jour))
+                    ->whereNull('deleted_at'),
+            ],
             'duree' => ['required', 'numeric', 'min:1'],
         ];
     }

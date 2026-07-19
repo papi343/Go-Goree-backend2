@@ -5,10 +5,11 @@ namespace App\Http\Controllers\Api\V1\Residents;
 use App\Enums\ModePayementEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Residents\SouscrireAbonnementRequest;
+use App\Http\Requests\Api\V1\Residents\StoreAbonnementRequest;
+use App\Http\Requests\Api\V1\Residents\UpdateAbonnementRequest;
 use App\Models\Abonnement;
 use App\Models\Plan;
 use App\Services\Residents\AbonnementSouscriptionService;
-use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 /**
@@ -54,9 +55,9 @@ class AbonnementController extends Controller
     /**
      * Créer un nouvel abonnement.
      */
-    public function store(Request $request)
+    public function store(StoreAbonnementRequest $request)
     {
-        $record = Abonnement::create($request->all());
+        $record = Abonnement::create($request->validated());
 
         return response()->json($record, Response::HTTP_CREATED);
     }
@@ -72,10 +73,10 @@ class AbonnementController extends Controller
     /**
      * Mettre à jour un abonnement.
      */
-    public function update(Request $request, $id)
+    public function update(UpdateAbonnementRequest $request, $id)
     {
         $record = Abonnement::findOrFail($id);
-        $record->update($request->all());
+        $record->update($request->validated());
 
         return response()->json($record);
     }

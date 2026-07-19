@@ -25,18 +25,19 @@ class StoreDemandeResidenceRequest extends FormRequest
         return [
             'carte_identite' => ['required', 'string'],
             'residence' => ['required', 'string'],
-            // photo can be a string path (for seeds/tests) or an uploaded image
-            'photo' => ['required_without:photo_file', 'string', 'max:255'],
+            // photo can be a string path (for seeds/tests) or an uploaded image ;
+            // le chemin doit rester un chemin de stockage relatif (pas d'URL externe, pas de traversal)
+            'photo' => ['required_without:photo_file', 'string', 'max:255', 'regex:/^(?!.*\.\.)(?!.*:\/\/)[\w\-\/\.]+$/'],
             'photo_file' => ['nullable', 'file', 'image', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
-            
+
             // cni_recto, cni_verso, and certificat_residence can be string paths or files
-            'cni_recto' => ['nullable', 'sometimes', 'string', 'max:255'],
+            'cni_recto' => ['nullable', 'sometimes', 'string', 'max:255', 'regex:/^(?!.*\.\.)(?!.*:\/\/)[\w\-\/\.]+$/'],
             'cni_recto_file' => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp,pdf,doc,docx', 'max:10240'],
-            
-            'cni_verso' => ['nullable', 'sometimes', 'string', 'max:255'],
+
+            'cni_verso' => ['nullable', 'sometimes', 'string', 'max:255', 'regex:/^(?!.*\.\.)(?!.*:\/\/)[\w\-\/\.]+$/'],
             'cni_verso_file' => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp,pdf,doc,docx', 'max:10240'],
-            
-            'certificat_residence' => ['nullable', 'sometimes', 'string', 'max:255'],
+
+            'certificat_residence' => ['nullable', 'sometimes', 'string', 'max:255', 'regex:/^(?!.*\.\.)(?!.*:\/\/)[\w\-\/\.]+$/'],
             'certificat_residence_file' => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp,pdf,doc,docx', 'max:10240'],
         ];
     }
