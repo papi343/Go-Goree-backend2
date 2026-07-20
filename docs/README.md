@@ -53,3 +53,5 @@ Role (Admin/Agent/Client) 1 ─── * User
                                   ├── * Payement ── * Billet ── * Scan
                                   └── * Notification
 ```
+
+Pour consulter les instructions de configuration et d'installation, voir le **[Guide d'Installation](./installation.md)**.
